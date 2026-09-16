@@ -91,6 +91,21 @@ npm start
 
 ---
 
+## Deploying to Render (or Cloud Platforms)
+
+When deploying to **Render** as a Web Service:
+
+- **Build Command**: `npm install && npm run build`
+- **Start Command**: `npm start`
+- **Environment Variables**:
+  - `GEMINI_API_KEY`: Your Google Gemini API Key
+  - `PORT`: `3000`
+  - `NODE_VERSION`: `20`
+
+> **Note**: A `render.yaml` configuration is included at the root of the project to automate these settings. Additionally, a `prestart` hook is configured in `package.json` to automatically trigger `npm run build` if `dist/server.cjs` is ever missing during startup.
+
+---
+
 ## API Endpoints
 
 - `GET /api/health`: System health and Gemini API key status.
