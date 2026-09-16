@@ -522,23 +522,50 @@ Guidelines:
 
 // Setup Vite middleware for development and static serving for production
 async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req: Request, res: Response) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
+  try {
+    if (process.env.NODE_ENV !== 'production') {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), 'dist');
+      app.use(express.static(distPath));
+      app.get('*', (req: Request, res: Response) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Customer Sentiment Dashboard Server running on http://0.0.0.0:${PORT}`);
-  });
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Customer Sentiment Dashboard Server running on http://0.0.0.0:${PORT}`);
+    });
+
+    server.on('error', (err: any) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`[CRITICAL] Port ${PORT} is already in use. A dev server or existing process is already running on port ${PORT}.`);
+      } else {
+        console.error('[CRITICAL] Server encountered an error on listen:', err);
+      }
+    });
+
+    const handleShutdown = (signal: string) => {
+      console.log(`Received ${signal}. Closing server gracefully...`);
+      server.close(() => {
+        console.log('Server closed successfully.');
+        process.exit(0);
+      });
+    };
+
+    process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+    process.on('SIGINT', () => handleShutdown('SIGINT'));
+  } catch (error) {
+    console.error('[CRITICAL] Failed to bootstrap application server:', error);
+    process.exit(1);
+  }
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error('[FATAL] Uncaught error in startServer:', err);
+  process.exit(1);
+});
